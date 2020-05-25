@@ -1,0 +1,188 @@
+#ifndef _CLUI_H
+#define _CLUI_H
+
+#include <clui/config.h>
+#include <utils/cdefs.h>
+#include <stdio.h>
+#include <stdbool.h>
+
+#if defined(CONFIG_CLUI_ASSERT)
+
+#include <utils/assert.h>
+
+#define clui_assert(_expr) \
+	uassert("clui", _expr)
+
+#else /* !defined(CONFIG_CLUI_ASSERT) */
+
+#define clui_assert(_expr)
+
+#endif /* defined(CONFIG_CLUI_ASSERT) */
+
+struct clui_context;
+struct clui_cmd;
+struct clui_parser;
+struct clui_opt;
+struct clui_kword_parm;
+
+typedef int (clui_exec_fn)(struct clui_context *ctx);
+
+struct clui_context {
+	const struct clui_cmd    *cmd;
+	const struct clui_parser *parser;
+	const struct clui_opt    *opt;
+	clui_exec_fn             *exec;
+};
+
+#define CLUI_INIT_CONTEXT \
+	{ \
+		.cmd    = NULL, \
+		.parser = NULL, \
+		.opt    = NULL, \
+		.exec   = NULL \
+	}
+
+static inline void
+clui_sched_exec(struct clui_context *ctx, clui_exec_fn *exec)
+{
+	clui_assert(ctx);
+	clui_assert(exec);
+
+	ctx->exec = exec;
+}
+
+static inline int
+clui_exec(struct clui_context *ctx)
+{
+	clui_assert(ctx);
+	clui_assert(ctx->exec);
+
+	return ctx->exec(ctx);
+}
+
+#define CLUI_STOP (1)
+
+extern void
+clui_error(const char *format, ...);
+
+extern void
+clui_init(int arg_nr, char * const args[]);
+
+/******************************************************************************
+ * Command paramaters handling
+ ******************************************************************************/
+
+typedef int (clui_parse_early_parm_fn)(const struct clui_context *ctx,
+                                       int                        arg_nr,
+                                       char * const               args[]);
+
+struct clui_early_parm {
+	clui_parse_early_parm_fn *parse;
+	const char               *help_label;
+	const char               *help_desc;
+};
+
+typedef int (clui_parse_kword_parm_fn)(const struct clui_kword_parm *parm,
+                                       const struct clui_context    *ctx,
+                                       int                           arg_nr,
+                                       char * const                  args[]);
+
+struct clui_kword_parm {
+	const char               *kword;
+	clui_parse_kword_parm_fn *parse;
+	const char               *help_label;
+	const char               *help_desc;
+};
+
+struct clui_parm_group {
+	unsigned int                          early_nr;
+	const struct clui_early_parm * const *early_parms;
+	unsigned int                          kword_nr;
+	const struct clui_kword_parm * const *kword_parms;
+};
+
+extern int
+clui_parse_parm_group(const struct clui_parm_group *group,
+                      struct clui_context          *ctx,
+                      int                           arg_nr,
+                      char * const                  args[]);
+
+/******************************************************************************
+ * Command handling
+ ******************************************************************************/
+
+typedef int (clui_parse_cmd_fn)(struct clui_context *ctx,
+                                int                  arg_nr,
+                                char * const         args[]);
+
+struct clui_cmd {
+	const char        *kword;
+	clui_parse_cmd_fn *parse;
+	const char        *help_brief;
+	const char        *help_desc;
+};
+
+#define clui_cmd_error(_ctx, _format, ...) \
+	clui_error("%s: " _format, (_ctx)->cmd->kword, ## __VA_ARGS__)
+
+extern int
+clui_parse_help_cmd(struct clui_context *ctx, int arg_nr, char * const args[]);
+
+extern void
+clui_display_cmd_help(const struct clui_context *ctx, FILE *stdio);
+
+struct clui_cmd_group {
+	unsigned int                   nr;
+	const struct clui_cmd * const *cmds;
+};
+
+extern int
+clui_parse_cmd_group(const struct clui_cmd_group *group,
+                     struct clui_context         *ctx,
+                     int                          arg_nr,
+                     char * const                 args[]);
+
+/******************************************************************************
+ * Options handling
+ ******************************************************************************/
+
+typedef int (clui_parse_opt_fn)(struct clui_context *ctx, const char *arg);
+
+struct clui_opt {
+	const char         short_name;
+	const char        *long_name;
+	bool               has_arg;
+	clui_parse_opt_fn *parse;
+	const char        *help_brief;
+};
+
+extern int
+clui_parse_opts(const struct clui_parser *parser,
+                struct clui_context      *ctx,
+                int                       arg_nr,
+                char * const              args[]);
+
+extern int
+clui_parse_help_opt(struct clui_context *ctx, const char *arg __unused);
+
+/******************************************************************************
+ * Parser handling
+ ******************************************************************************/
+
+struct clui_parser {
+	struct clui_cmd_group          cmds;
+	const struct clui_cmd         *dflt_cmd;
+	unsigned int                   opt_nr;
+	const struct clui_opt * const *opts;
+};
+
+extern void
+clui_display_usage(const struct clui_context *ctx, FILE *stdio);
+
+extern int
+clui_parse_args(const struct clui_parser *parser,
+                struct clui_context      *ctx,
+                int                       arg_nr,
+                char * const              args[]);
+
+#endif /* _CLUI_H */

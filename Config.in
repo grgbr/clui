@@ -1,0 +1,5 @@
+config CLUI_ASSERT
+	bool "Assertion"
+	default n
+	help
+	  Build clui library  with internal assertions enabled.
