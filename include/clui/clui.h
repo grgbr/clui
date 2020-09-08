@@ -110,4 +110,40 @@ clui_parse_cmd(const struct clui_cmd *cmd,
 	return cmd->parse(cmd, parser, argc, argv, ctx);
 }
 
+/******************************************************************************
+ * Keyword parameter handling
+ ******************************************************************************/
+
+typedef int (clui_parse_kword_parm_fn)(const struct clui_cmd *cmd,
+                                       struct clui_parser    *parser,
+                                       const char            *argv,
+                                       void                  *ctx);
+
+#define CLUI_KWORD_PARM_MAX (32U)
+
+struct clui_kword_parm {
+	const char               *kword;
+	clui_parse_kword_parm_fn *parse;
+};
+
+extern int
+clui_parse_one_kword_parm(
+	const struct clui_cmd                *cmd,
+        struct clui_parser                   *parser,
+        const struct clui_kword_parm * const  parms[],
+        unsigned int                          nr,
+        int                                   argc,
+        char * const                          argv[],
+	void                                 *ctx) __clui_nonull(1, 2, 3, 6);
+
+extern int
+clui_parse_all_kword_parms(
+	const struct clui_cmd                *cmd,
+        struct clui_parser                   *parser,
+        const struct clui_kword_parm * const  parms[],
+        unsigned int                          nr,
+        int                                   argc,
+        char * const                          argv[],
+	void                                 *ctx) __clui_nonull(1, 2, 3, 6);
+
 #endif /* _LIBCLUI_H */
