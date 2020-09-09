@@ -2,8 +2,9 @@
 #define _LIBCLUI_H
 
 #include <clui/config.h>
-#include <stdio.h>
 #include <utils/cdefs.h>
+#include <stdio.h>
+#include <getopt.h>
 #include <linux/taskstats.h>
 
 #if defined(CONFIG_CLUI_ASSERT)
@@ -25,14 +26,16 @@
 #endif /* defined(CONFIG_CLUI_ASSERT) */
 
 struct clui_cmd;
+struct clui_opt_set;
 
 /******************************************************************************
  * Top-level parser handling
  ******************************************************************************/
 
 struct clui_parser {
-	const struct clui_cmd *cmd;
-	char                   argv0[TS_COMM_LEN];
+	const struct clui_opt_set *set;
+	const struct clui_cmd     *cmd;
+	char                       argv0[TS_COMM_LEN];
 };
 
 #define clui_assert_parser(_parser) \
@@ -53,12 +56,68 @@ clui_parse(struct clui_parser *parser,
            void               *ctx) __clui_nonull(1, 3);
 
 extern int
-clui_init(struct clui_parser    *restrict parser,
-          const struct clui_cmd *cmd,
-          int                    argc,
-          char * const          *restrict argv) __clui_nonull(1, 2, 4)
-                                                __nothrow
-                                                __leaf;
+clui_init(struct clui_parser        *restrict parser,
+          const struct clui_opt_set *set,
+          const struct clui_cmd     *cmd,
+          int                        argc,
+          char * const              *restrict argv) __clui_nonull(1, 3, 5)
+                                                    __nothrow
+                                                    __leaf;
+
+/******************************************************************************
+ * Parser option handling
+ ******************************************************************************/
+
+struct clui_opt;
+
+typedef int (clui_parse_opt_fn)(const struct clui_opt    *opt,
+                                const struct clui_parser *parser,
+                                const char               *arg,
+                                void                     *ctx);
+
+struct clui_opt {
+	int                short_char;
+	const char        *long_name;
+	int                has_arg;
+	clui_parse_opt_fn *parse;
+};
+
+#define CLUI_OPT_NONE_ARG     (no_argument)
+#define CLUI_OPT_REQUIRED_ARG (required_argument)
+#define CLUI_OPT_OPTIONAL_ARG (optional_argument)
+
+struct clui_opt_set;
+
+typedef int (clui_check_opts_fn)(const struct clui_opt_set *set,
+                                 const struct clui_parser  *parser,
+                                 void                      *ctx);
+
+
+typedef void (clui_help_opts_fn)(const struct clui_parser *parser,
+                                 FILE                     *stdio);
+
+struct clui_opt_set {
+	unsigned int           nr;
+	const struct clui_opt *opts;
+	clui_check_opts_fn    *check;
+	clui_help_opts_fn     *help;
+};
+
+#define clui_assert_opt_set(_set) \
+	clui_assert(_set); \
+	clui_assert((_set)->nr); \
+	clui_assert((_set)->opts); \
+	clui_assert((_set)->help)
+
+static inline void __clui_nonull(1, 2)
+clui_help_opts(const struct clui_parser *parser, FILE *stdio)
+{
+	clui_assert_parser(parser);
+	clui_assert_opt_set(parser->set);
+	clui_assert(stdio);
+
+	parser->set->help(parser, stdio);
+}
 
 /******************************************************************************
  * Parser command handling
