@@ -43,7 +43,7 @@ clui_parse_one_kword_parm(const struct clui_cmd                *cmd,
 	int                           ret;
 
 	if ((argc < 2) || !argv[0] || !*argv[0] || !argv[1] || !*argv[1]) {
-		clui_err(parser, "missing keyword parameter(s).\n");
+		clui_err(parser, "missing keyword and/or parameter.\n");
 		clui_help_cmd(cmd, parser, stderr);
 		return -EINVAL;
 	}
