@@ -25,12 +25,7 @@
 
 #endif /* defined(CONFIG_CLUI_ASSERT) */
 
-struct clui_cmd;
-struct clui_opt_set;
-
-/******************************************************************************
- * Top-level parser handling
- ******************************************************************************/
+#define CLUI_LABEL_MAX (32U)
 
 struct clui_parser {
 	const struct clui_opt_set *set;
@@ -44,25 +39,72 @@ struct clui_parser {
 	clui_assert(*(_parser)->argv0); \
 	clui_assert(!(_parser)->argv0[sizeof(parser->argv0) - 1])
 
-extern void
-clui_err(const struct clui_parser *restrict parser,
-         const char               *restrict format,
-         ...) __clui_nonull(1, 2) __printf(2, 3) __leaf;
+/******************************************************************************
+ * Keyword parameter handling
+ ******************************************************************************/
+
+typedef int (clui_parse_kword_parm_fn)(const struct clui_cmd *cmd,
+                                       struct clui_parser    *parser,
+                                       const char            *argv,
+                                       void                  *ctx);
+
+struct clui_kword_parm {
+	const char               *label;
+	clui_parse_kword_parm_fn *parse;
+};
 
 extern int
-clui_parse(struct clui_parser *parser,
-           int                 argc,
-           char * const       *argv,
-           void               *ctx) __clui_nonull(1, 3);
+clui_parse_one_kword_parm(
+	const struct clui_cmd                *cmd,
+        struct clui_parser                   *parser,
+        const struct clui_kword_parm * const  parms[],
+        unsigned int                          nr,
+        int                                   argc,
+        char * const                          argv[],
+	void                                 *ctx) __clui_nonull(1, 2, 3, 6);
 
 extern int
-clui_init(struct clui_parser        *restrict parser,
-          const struct clui_opt_set *set,
-          const struct clui_cmd     *cmd,
-          int                        argc,
-          char * const              *restrict argv) __clui_nonull(1, 3, 5)
-                                                    __nothrow
-                                                    __leaf;
+clui_parse_all_kword_parms(
+	const struct clui_cmd                *cmd,
+        struct clui_parser                   *parser,
+        const struct clui_kword_parm * const  parms[],
+        unsigned int                          nr,
+        int                                   argc,
+        char * const                          argv[],
+	void                                 *ctx) __clui_nonull(1, 2, 3, 6);
+
+/******************************************************************************
+ * Switch parameter handling
+ ******************************************************************************/
+
+typedef int (clui_parse_switch_parm_fn)(const struct clui_cmd *cmd,
+                                        struct clui_parser    *parser,
+                                        void                  *ctx);
+
+struct clui_switch_parm {
+	const char                *label;
+	clui_parse_switch_parm_fn *parse;
+};
+
+extern int
+clui_parse_one_switch_parm(
+	const struct clui_cmd                 *cmd,
+        struct clui_parser                    *parser,
+        const struct clui_switch_parm * const  parms[],
+        unsigned int                           nr,
+        int                                    argc,
+        char * const                           argv[],
+	void                                  *ctx) __clui_nonull(1, 2, 3, 6);
+
+extern int
+clui_parse_all_switch_parms(
+	const struct clui_cmd                 *cmd,
+        struct clui_parser                    *parser,
+        const struct clui_switch_parm * const  parms[],
+        unsigned int                           nr,
+        int                                    argc,
+        char * const                           argv[],
+	void                                  *ctx) __clui_nonull(1, 2, 3, 6);
 
 /******************************************************************************
  * Parser option handling
@@ -170,39 +212,27 @@ clui_parse_cmd(const struct clui_cmd *cmd,
 }
 
 /******************************************************************************
- * Keyword parameter handling
+ * Top-level parser handling
  ******************************************************************************/
 
-typedef int (clui_parse_kword_parm_fn)(const struct clui_cmd *cmd,
-                                       struct clui_parser    *parser,
-                                       const char            *argv,
-                                       void                  *ctx);
-
-#define CLUI_KWORD_PARM_MAX (32U)
-
-struct clui_kword_parm {
-	const char               *kword;
-	clui_parse_kword_parm_fn *parse;
-};
+extern void
+clui_err(const struct clui_parser *restrict parser,
+         const char               *restrict format,
+         ...) __clui_nonull(1, 2) __printf(2, 3) __leaf;
 
 extern int
-clui_parse_one_kword_parm(
-	const struct clui_cmd                *cmd,
-        struct clui_parser                   *parser,
-        const struct clui_kword_parm * const  parms[],
-        unsigned int                          nr,
-        int                                   argc,
-        char * const                          argv[],
-	void                                 *ctx) __clui_nonull(1, 2, 3, 6);
+clui_parse(struct clui_parser *parser,
+           int                 argc,
+           char * const       *argv,
+           void               *ctx) __clui_nonull(1, 3);
 
 extern int
-clui_parse_all_kword_parms(
-	const struct clui_cmd                *cmd,
-        struct clui_parser                   *parser,
-        const struct clui_kword_parm * const  parms[],
-        unsigned int                          nr,
-        int                                   argc,
-        char * const                          argv[],
-	void                                 *ctx) __clui_nonull(1, 2, 3, 6);
+clui_init(struct clui_parser        *restrict parser,
+          const struct clui_opt_set *set,
+          const struct clui_cmd     *cmd,
+          int                        argc,
+          char * const              *restrict argv) __clui_nonull(1, 3, 5)
+                                                    __nothrow
+                                                    __leaf;
 
 #endif /* _LIBCLUI_H */
