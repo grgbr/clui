@@ -35,7 +35,7 @@ struct clui_parser {
 
 #define clui_assert_parser(_parser) \
 	clui_assert(_parser); \
-	clui_assert((_parser)->cmd); \
+	clui_assert((_parser)->set || (_parser)->cmd); \
 	clui_assert(*(_parser)->argv0); \
 	clui_assert(!(_parser)->argv0[sizeof(parser->argv0) - 1])
 
@@ -181,9 +181,11 @@ struct clui_cmd {
 };
 
 #define clui_assert_cmd(_cmd) \
-	clui_assert(_cmd); \
-	clui_assert((_cmd)->parse); \
-	clui_assert((_cmd)->help)
+	({ \
+		clui_assert(_cmd); \
+		clui_assert((_cmd)->parse); \
+		clui_assert((_cmd)->help); \
+	 })
 
 static inline void __clui_nonull(1, 2, 3)
 clui_help_cmd(const struct clui_cmd    *cmd,
@@ -231,7 +233,7 @@ clui_init(struct clui_parser        *restrict parser,
           const struct clui_opt_set *set,
           const struct clui_cmd     *cmd,
           int                        argc,
-          char * const              *restrict argv) __clui_nonull(1, 3, 5)
+          char * const              *restrict argv) __clui_nonull(1, 5)
                                                     __nothrow
                                                     __leaf;
 

@@ -218,13 +218,15 @@ clui_parse_all_switch_parms(const struct clui_cmd                 *cmd,
  ******************************************************************************/
 
 #define clui_assert_opt(_opt) \
-	clui_assert(_opt); \
-	clui_assert(isalnum((_opt)->short_char)); \
-	clui_assert((_opt)->long_name); \
-	clui_assert(*(_opt)->long_name); \
-	clui_assert((_opt)->has_arg >= no_argument); \
-	clui_assert((_opt)->has_arg <= optional_argument); \
-	clui_assert((_opt)->parse)
+	({ \
+		clui_assert(_opt); \
+		clui_assert(isalnum((_opt)->short_char)); \
+		clui_assert((_opt)->long_name); \
+		clui_assert(*(_opt)->long_name); \
+		clui_assert((_opt)->has_arg >= no_argument); \
+		clui_assert((_opt)->has_arg <= optional_argument); \
+		clui_assert((_opt)->parse); \
+	 })
 
 static int __clui_nonull(1, 2, 4)
 clui_parse_opts(const struct clui_opt_set *set,
@@ -336,10 +338,13 @@ clui_parse(struct clui_parser *parser, int argc, char * const *argv, void *ctx)
 			return cnt;
 	}
 
+	if (!parser->cmd)
+		return 0;
+
 	return clui_parse_cmd(parser->cmd, parser, argc - cnt, &argv[cnt], ctx);
 }
 
-int __clui_nonull(1, 3, 5) __nothrow __leaf
+int __clui_nonull(1, 5) __nothrow __leaf
 clui_init(struct clui_parser        *restrict parser,
           const struct clui_opt_set *set,
           const struct clui_cmd     *cmd,
@@ -347,11 +352,13 @@ clui_init(struct clui_parser        *restrict parser,
           char * const              *restrict argv)
 {
 	clui_assert(parser);
-	clui_assert_cmd(cmd);
 	clui_assert(argv);
+	clui_assert(set || cmd);
 #if defined(CONFIG_CLUI_ASSERT)
 	if (set)
 		clui_assert_opt_set(set);
+	if (cmd)
+		clui_assert_cmd(cmd);
 #endif /* defined(CONFIG_CLUI_ASSERT) */
 
 	if (!argc || !argv[0] || !*argv[0])
