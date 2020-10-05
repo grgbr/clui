@@ -151,15 +151,24 @@ struct clui_opt_set {
 	clui_assert((_set)->opts); \
 	clui_assert((_set)->help)
 
-static inline void __clui_nonull(1, 2)
-clui_help_opts(const struct clui_parser *parser, FILE *stdio)
+static inline void __clui_nonull(1, 2, 3)
+clui_help_opts(const struct clui_opt_set *set,
+               const struct clui_parser  *parser,
+               FILE                      *stdio) 
 {
+	clui_assert_opt_set(set);
 	clui_assert_parser(parser);
-	clui_assert_opt_set(parser->set);
 	clui_assert(stdio);
 
-	parser->set->help(parser, stdio);
+	set->help(parser, stdio);
 }
+
+extern int
+clui_parse_opts(const struct clui_opt_set *set,
+                struct clui_parser        *parser,
+                int                        argc,
+                char * const              *argv,
+                void                      *ctx) __clui_nonull(1, 2, 4);
 
 /******************************************************************************
  * Parser command handling
@@ -223,18 +232,18 @@ clui_err(const struct clui_parser *restrict parser,
          ...) __clui_nonull(1, 2) __printf(2, 3) __leaf;
 
 extern int
-clui_parse(struct clui_parser *parser,
-           int                 argc,
-           char * const       *argv,
-           void               *ctx) __clui_nonull(1, 3);
+clui_parse(struct clui_parser        *parser,
+           const struct clui_opt_set *set,
+           const struct clui_cmd     *cmd,
+           int                        argc,
+           char                      *const *argv,
+           void                      *ctx) __clui_nonull(1, 2, 3, 5);
 
 extern int
-clui_init(struct clui_parser        *restrict parser,
-          const struct clui_opt_set *set,
-          const struct clui_cmd     *cmd,
-          int                        argc,
-          char * const              *restrict argv) __clui_nonull(1, 5)
-                                                    __nothrow
-                                                    __leaf;
+clui_init(struct clui_parser *restrict parser,
+          int                 argc,
+          char * const       *restrict argv) __clui_nonull(1, 3)
+                                             __nothrow
+                                             __leaf;
 
 #endif /* _LIBCLUI_H */

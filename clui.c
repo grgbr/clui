@@ -228,7 +228,7 @@ clui_parse_all_switch_parms(const struct clui_cmd                 *cmd,
 		clui_assert((_opt)->parse); \
 	 })
 
-static int __clui_nonull(1, 2, 4)
+int __clui_nonull(1, 2, 4)
 clui_parse_opts(const struct clui_opt_set *set,
                 struct clui_parser        *parser,
                 int                        argc,
@@ -312,7 +312,7 @@ clui_parse_opts(const struct clui_opt_set *set,
 	return optind;
 
 err:
-	clui_help_opts(parser, stderr);
+	clui_help_opts(set, parser, stderr);
 
 	return -EINVAL;
 }
@@ -321,38 +321,15 @@ err:
  * Top-level parser handling
  ******************************************************************************/
 
-int __clui_nonull(1, 3)
-clui_parse(struct clui_parser *parser, int argc, char * const *argv, void *ctx)
+int __clui_nonull(1, 2, 3, 5)
+clui_parse(struct clui_parser        *parser,
+           const struct clui_opt_set *set,
+           const struct clui_cmd     *cmd,
+           int                        argc,
+           char                      *const *argv,
+           void                      *ctx)
 {
 	clui_assert_parser(parser);
-	clui_assert(argc);
-	clui_assert(argv);
-	clui_assert(argv[0]);
-	clui_assert(*argv[0]);
-
-	int cnt = 1;
-
-	if (parser->set) {
-		cnt = clui_parse_opts(parser->set, parser, argc, argv, ctx);
-		if (cnt < 0)
-			return cnt;
-	}
-
-	if (!parser->cmd)
-		return 0;
-
-	return clui_parse_cmd(parser->cmd, parser, argc - cnt, &argv[cnt], ctx);
-}
-
-int __clui_nonull(1, 5) __nothrow __leaf
-clui_init(struct clui_parser        *restrict parser,
-          const struct clui_opt_set *set,
-          const struct clui_cmd     *cmd,
-          int                        argc,
-          char * const              *restrict argv)
-{
-	clui_assert(parser);
-	clui_assert(argv);
 	clui_assert(set || cmd);
 #if defined(CONFIG_CLUI_ASSERT)
 	if (set)
@@ -360,12 +337,35 @@ clui_init(struct clui_parser        *restrict parser,
 	if (cmd)
 		clui_assert_cmd(cmd);
 #endif /* defined(CONFIG_CLUI_ASSERT) */
+	clui_assert(argc);
+	clui_assert(argv);
+	clui_assert(argv[0]);
+	clui_assert(*argv[0]);
+
+	int cnt = 1;
+
+	if (set) {
+		cnt = clui_parse_opts(set, parser, argc, argv, ctx);
+		if (cnt < 0)
+			return cnt;
+	}
+
+	if (!cmd)
+		return 0;
+
+	return clui_parse_cmd(cmd, parser, argc - cnt, &argv[cnt], ctx);
+}
+
+int __clui_nonull(1, 3) __nothrow __leaf
+clui_init(struct clui_parser *restrict parser,
+          int                 argc,
+          char * const       *restrict argv)
+{
+	clui_assert(parser);
+	clui_assert(argv);
 
 	if (!argc || !argv[0] || !*argv[0])
 		return -EINVAL;
-
-	parser->set = set;
-	parser->cmd = cmd;
 
 	strncpy(parser->argv0, basename(argv[0]), sizeof(parser->argv0) - 1);
 	parser->argv0[sizeof(parser->argv0) - 1] = '\0';

@@ -2,4 +2,11 @@ config CLUI_ASSERT
 	bool "Assertion"
 	default n
 	help
-	  Build clui library  with internal assertions enabled.
+	  Build clui library with internal assertions enabled.
+
+config CLUI_SHELL
+	bool "Interactive shell"
+	default y
+	help
+	  Build clui library with support for readline based interactive shell
+	  session.
