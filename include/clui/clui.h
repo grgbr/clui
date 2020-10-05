@@ -27,15 +27,14 @@
 
 #define CLUI_LABEL_MAX (32U)
 
+struct clui_cmd;
+
 struct clui_parser {
-	const struct clui_opt_set *set;
-	const struct clui_cmd     *cmd;
-	char                       argv0[TS_COMM_LEN];
+	char argv0[TS_COMM_LEN];
 };
 
 #define clui_assert_parser(_parser) \
 	clui_assert(_parser); \
-	clui_assert((_parser)->set || (_parser)->cmd); \
 	clui_assert(*(_parser)->argv0); \
 	clui_assert(!(_parser)->argv0[sizeof(parser->argv0) - 1])
 

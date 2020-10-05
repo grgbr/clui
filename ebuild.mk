@@ -25,7 +25,7 @@ Version: %%PKG_VERSION%%
 Requires: $(call kconf_enabled,CLUI_ASSERT,libutils)
 Cflags: -I$${includedir}
 Libs: -L$${libdir} -lclui
-Libs.private: -lreadline
+Libs.private: $(call kconf_enabled,CLUI_SHELL,-lreadline)
 endef
 
 pkgconfigs         := libclui.pc
