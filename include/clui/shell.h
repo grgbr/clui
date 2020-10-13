@@ -20,6 +20,14 @@ extern void
 clui_shell_shutdown(void) __nothrow __leaf;
 
 extern void
-clui_shell_init(const char *prompt, bool enable_history) __nothrow __leaf;
+clui_shell_redisplay(void) __nothrow __leaf;
+
+extern void
+clui_shell_init(const char *restrict name,
+                const char *restrict prompt,
+                bool                 enable_history);
+
+extern void
+clui_shell_fini(void);
 
 #endif /* _CLUI_SHELL_H */

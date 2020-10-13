@@ -1,17 +1,21 @@
 #include <clui/clui.h>
 #include <clui/shell.h>
 #include <utils/string.h>
+#include <utils/path.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 
 struct clui_shell {
-	const char   *prompt;
-	bool          hist;
-	sig_atomic_t  shutdown;
+	const char            *prompt;
+	bool                   hist;
+	char                  *hist_path;
+	volatile sig_atomic_t  redisplay;
+	volatile sig_atomic_t  shutdown;
 };
 
 static struct clui_shell clui_the_shell;
@@ -24,19 +28,33 @@ clui_shell_read_line(char **line)
 
 	char *ln;
 
+	/* Reset redisplay event handling logic. */
+	clui_the_shell.redisplay = 0;
+
 	ln = readline(clui_the_shell.prompt);
 	if (!ln) {
 		/* End of stream required using ^D. */
-		putchar('\n');
+		rl_crlf();
 		return -ESHUTDOWN;
 	}
 
 	if (clui_the_shell.shutdown) {
+		/* We were explicitly requested to shutdown. */
 		free(ln);
 		return -ESHUTDOWN;
 	}
 
-	if (!*ln) {
+	if (clui_the_shell.redisplay || !*ln) {
+		/*
+		 * When clui_the_shell.redisplay is true, a redisplay event
+		 * happened during the course of readline() and it has not been
+		 * processed entirely, i.e. we were interrupted in the middle of
+		 * an incremental searching and / or numeric argument probing
+		 * operation.
+		 * Complete the event by freeing readline's buffered input.
+		 * See clui_shell_handle_readline_events();
+		 */
+		
 		free(ln);
 		return -ENODATA;
 	}
@@ -179,27 +197,157 @@ clui_shell_shutdown(void)
 	clui_the_shell.shutdown = 1;
 }
 
+void __nothrow __leaf
+clui_shell_redisplay(void)
+{
+	clui_the_shell.redisplay = 1;
+}
+
 static int
 clui_shell_handle_readline_events(void)
 {
-	if (clui_the_shell.shutdown)
-		/*
-		 * Cause a blocking readline() to return immediately instead of
-		 * waiting for the next end-of-line input character.
-		 */
+	if (clui_the_shell.redisplay) {
+		/* Move cursor to next line. */
+		rl_crlf();
+		/* Tell readline we have moved onto a new empty line. */
+		rl_on_new_line();
+		/* Wipe buffered line content out. */
+		rl_replace_line("", 0);
+
+		if (RL_ISSTATE(RL_STATE_ISEARCH | RL_STATE_NUMERICARG)) {
+			/*
+			 * We are in the middle of an incremental searching or
+			 * numeric argument probing operation.
+			 * Restore our own prompt since both operations
+			 * temporarily modify current prompt and that we have
+			 * just interrupted them.
+			 */
+			rl_restore_prompt();
+
+			/*
+			 * Cause a blocking readline() to return immediately
+			 * instead of waiting for the next end-of-line input
+			 * character.
+			 * This gives readline() caller a chance to purge
+			 * buffered input as soon as possible to prevent from
+			 * mixing it with post interruption input characters.
+			 * The reason why we cannot free these buffered
+			 * characters here is that readline provides no public
+			 * API (I know of) to purge characters buffered by its
+			 * incremental searching logic. As a consequence we need
+			 * to wait for readline() to return before being able to
+			 * release them.
+			 * This is the reason we leave clui_the_shell.redisplay
+			 * untouched here...
+			 */
+			rl_done = 1;
+		}
+		else {
+			/* Tell readline it should update screen. */
+			rl_redisplay();
+
+			/* Mark redisplay event as completed. */
+			clui_the_shell.redisplay = 0;
+		}
+	}
+	else if (clui_the_shell.shutdown)
+		/* Request readline() to return immediately. */
 		rl_done = 1;
 
 	return 0;
 }
 
-void __nothrow __leaf
-clui_shell_init(const char *prompt, bool enable_history)
+static char *
+clui_shell_hist_path(const char *name)
 {
+	const char *base_dir;
+	char       *conf_dir;
+	char       *hist_path;
+	int         err;
+
+	err = upath_validate_file_name(name);
+	if (err < 0) {
+		errno = -err;
+		return NULL;
+	}
+
+	base_dir = secure_getenv("XDG_CONFIG_HOME");
+	if (!base_dir) {
+		base_dir = secure_getenv("HOME");
+		if (!base_dir)
+			return NULL;
+
+		err = asprintf(&conf_dir, "%s/.config/%s", base_dir, name);
+	}
+	else
+		err = asprintf(&conf_dir, "%s/%s", base_dir, name);
+
+	if (err < 0)
+		return NULL;
+
+	if (mkdir(conf_dir, S_IRUSR | S_IWUSR)) {
+		clui_assert(errno != EFAULT);
+		if (errno != EEXIST)
+			goto free;
+	}
+
+	err = asprintf(&hist_path, "%s/history", conf_dir);
+	if (err < 0)
+		goto free;
+
+	free(conf_dir);
+
+	return hist_path;
+
+free:
+	err = errno;
+	free(conf_dir);
+
+	errno = err;
+	return NULL;
+}
+
+void
+clui_shell_init(const char *restrict name,
+                const char *restrict prompt,
+                bool                 enable_history)
+{
+	clui_assert(!name || *name);
 	clui_assert(!prompt || *prompt);
 
 	clui_the_shell.prompt = prompt;
 	clui_the_shell.hist = enable_history;
+	clui_the_shell.hist_path = NULL;
 	clui_the_shell.shutdown = 0;
 
+	if (enable_history) {
+		if (name) {
+			clui_the_shell.hist_path = clui_shell_hist_path(name);
+			if (clui_the_shell.hist_path)
+				read_history(clui_the_shell.hist_path);
+		}
+	}
+
+	if (name)
+		rl_readline_name = name;
+
 	rl_event_hook = clui_shell_handle_readline_events;
+}
+
+static void
+clui_shell_save_hist(void)
+{
+	if (clui_the_shell.hist_path) {
+		clui_assert(clui_the_shell.hist);
+
+		write_history(clui_the_shell.hist_path);
+
+		free(clui_the_shell.hist_path);
+	}
+}
+
+void
+clui_shell_fini(void)
+{
+	clui_shell_save_hist();
 }
