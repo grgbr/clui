@@ -16,12 +16,17 @@
 
 #define __clui_nonull(_arg_index, ...)
 
+#define __clui_pure
+
 #else  /* !defined(CONFIG_CLUI_ASSERT) */
 
 #define clui_assert(_expr)
 
 #define __clui_nonull(_arg_index, ...) \
 	__nonull(_arg_index, ## __VA_ARGS__)
+
+#define __clui_pure \
+	__pure
 
 #endif /* defined(CONFIG_CLUI_ASSERT) */
 
