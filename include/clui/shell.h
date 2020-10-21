@@ -5,6 +5,12 @@
 #include <stdbool.h>
 #include <readline/readline.h>
 
+static inline void
+clui_shell_inhibit_completion_char(void)
+{
+	rl_completion_suppress_append = 1;
+}
+
 extern char **
 clui_shell_build_static_matches(const char *       word,
                                 size_t             len,
