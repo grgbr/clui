@@ -37,6 +37,15 @@ clui_shell_build_kword_matches(
 	void *                                     data);
 	__clui_nonull(1, 3, 6);
 
+extern char **
+clui_shell_build_switch_matches(const char *                          word,
+                                size_t                                len,
+                                const struct clui_switch_parm * const parms[],
+                                unsigned int                          nr,
+                                int                                   argc,
+                                const char * const                    argv[])
+	__clui_nonull(1, 3, 6);
+
 struct clui_shell_expr {
 	unsigned int  nr;
 	char **       words;

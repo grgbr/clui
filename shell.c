@@ -187,6 +187,91 @@ fini:
 	return matches;
 }
 
+static int __clui_nonull(1, 3) __nothrow __clui_pure
+clui_shell_find_switch_parm(
+	const struct clui_switch_parm * const restrict parms[],
+	unsigned int                                   nr,
+	const char *                                   arg)
+{
+	clui_assert(parms);
+	clui_assert(nr);
+	clui_assert(arg);
+
+	if (*arg) {
+		unsigned int p;
+
+		for (p = 0; p < nr; p++) {
+			const struct clui_switch_parm * parm = parms[p];
+
+			clui_assert(parm);
+			clui_assert(parm->label);
+			clui_assert(strnlen(parm->label, CLUI_LABEL_MAX) <
+			            CLUI_LABEL_MAX);
+			clui_assert(parm->parse);
+
+			if (!strcmp(parm->label, arg))
+				/* Found it ! */
+				return p;
+		}
+	}
+
+	return -ENOENT;
+}
+
+char ** __clui_nonull(1, 3, 6)
+clui_shell_build_switch_matches(const char *                          word,
+                                size_t                                len,
+                                const struct clui_switch_parm * const parms[],
+                                unsigned int                          nr,
+                                int                                   argc,
+                                const char * const                    argv[])
+{
+	clui_assert(word);
+	clui_assert(parms);
+	clui_assert(nr);
+	clui_assert(argv);
+
+	struct fbmp      bmp;
+	const char **    samples;
+	int              p = -ENOENT;
+	struct fbmp_iter iter;
+	unsigned int     m = 0;
+	char **          matches = NULL;
+
+	if (fbmp_init_set(&bmp, nr))
+		return NULL;
+
+	samples = malloc(nr * sizeof(samples[0]));
+	if (!samples)
+		goto fini;
+
+	if (argc > 0) {
+		int a;
+
+		for (a = 0; a < argc; a ++) {
+			p = clui_shell_find_switch_parm(parms, nr, argv[a]);
+			if (p >= 0)
+				fbmp_clear(&bmp, p);
+		}
+	}
+
+	fbmp_foreach_bit(&iter, &bmp, p)
+		samples[m++] = parms[p]->label;
+
+	if (m)
+		matches = clui_shell_build_static_matches(word,
+		                                          len,
+		                                          samples,
+		                                          m);
+
+	free(samples);
+
+fini:
+	fbmp_fini(&bmp);
+
+	return matches;
+}
+
 static int
 clui_shell_read_line(char ** line)
 {
