@@ -34,7 +34,7 @@ clui_shell_build_kword_matches(
 	unsigned int                               nr,
 	int                                        argc,
 	const char * const                         argv[],
-	void *                                     data);
+	void *                                     data)
 	__clui_nonull(1, 3, 6);
 
 extern char **

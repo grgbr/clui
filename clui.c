@@ -321,7 +321,7 @@ err:
  * Top-level parser handling
  ******************************************************************************/
 
-int __clui_nonull(1, 2, 3, 5)
+int
 clui_parse(struct clui_parser        *parser,
            const struct clui_opt_set *set,
            const struct clui_cmd     *cmd,

@@ -120,9 +120,9 @@ clui_shell_build_kword_matches(
 	clui_assert(nr);
 	clui_assert(argv);
 
-	struct fbmp   bmp;
-	int           p = -ENOENT;
-	char **       matches = NULL;
+	struct fbmp bmp;
+	int         p = -ENOENT;
+	char **     matches = NULL;
 
 	if (fbmp_init_set(&bmp, nr))
 		return NULL;

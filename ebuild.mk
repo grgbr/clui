@@ -13,6 +13,9 @@ headers             = clui/clui.h
 headers            += $(call kconf_enabled,CLUI_SHELL,clui/shell.h)
 headers            += $(call kconf_enabled,CLUI_TABLE,clui/table.h)
 
+ifneq ($(filter y,$(CONFIG_CLUI_ASSERT) $(CONFIG_CLUI_SHELL)),)
+pkgconf-libutils   := libutils
+endif # !($(filter y,$(CONFIG_CLUI_ASSERT)$(CONFIG_CLUI_SHELL)),)
 
 solibs             := libclui.so
 libclui.so-objs     = clui.o
@@ -20,7 +23,7 @@ libclui.so-objs    += $(call kconf_enabled,CLUI_SHELL,shell.o)
 libclui.so-objs    += $(call kconf_enabled,CLUI_TABLE,table.o)
 libclui.so-cflags  := $(EXTRA_CFLAGS) -Wall -Wextra -D_GNU_SOURCE -DPIC -fpic
 libclui.so-ldflags := $(EXTRA_LDFLAGS) -shared -fpic -Wl,-soname,libclui.so
-libclui.so-pkgconf  = $(call kconf_enabled,CLUI_ASSERT,libutils) \
+libclui.so-pkgconf  = $(pkgconf-libutils) \
                       $(call kconf_enabled,CLUI_SHELL,readline) \
                       $(call kconf_enabled,CLUI_TABLE,smartcols)
 
@@ -33,7 +36,7 @@ includedir=$${prefix}/include
 Name: libclui
 Description: Command Line User Interface library
 Version: $(VERSION)
-Requires: $(call kconf_enabled,CLUI_ASSERT,libutils) \
+Requires: $(pkgconf-libutils) \
           $(call kconf_enabled,CLUI_SHELL,readline) \
           $(call kconf_enabled,CLUI_TABLE,smartcols)
 Cflags: -I$${includedir}

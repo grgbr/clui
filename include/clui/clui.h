@@ -250,7 +250,7 @@ clui_parse(struct clui_parser        *parser,
            const struct clui_cmd     *cmd,
            int                        argc,
            char                      *const *argv,
-           void                      *ctx) __clui_nonull(1, 2, 3, 5);
+           void                      *ctx) __clui_nonull(1, 5);
 
 extern int
 clui_init(struct clui_parser *restrict parser,

@@ -33,7 +33,7 @@ clui_table_sort(const struct clui_table * table, unsigned int column)
 	clui_assert(column < table->desc->col_cnt);
 
 	struct libscols_column * col;
-	int                      err;
+	int                      err __unused;
 
 	col = scols_table_get_column(table->scols, column);
 	clui_assert(col);
