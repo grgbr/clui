@@ -10,3 +10,10 @@ config CLUI_SHELL
 	help
 	  Build clui library with support for readline based interactive shell
 	  session.
+
+config CLUI_TABLE
+	bool "Tabular data"
+	default y
+	help
+	  Build clui library with support for presenting / outputting data
+	  according to a tabular format.

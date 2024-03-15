@@ -1,5 +1,4 @@
-#include <clui/clui.h>
-#include <clui/shell.h>
+#include "clui/shell.h"
 #include <utils/string.h>
 #include <utils/path.h>
 #include <utils/bitmap.h>

@@ -1,5 +1,5 @@
-#ifndef _CLUI_SHELL_H
-#define _CLUI_SHELL_H
+#ifndef _LIBCLUI_SHELL_H
+#define _LIBCLUI_SHELL_H
 
 #include <clui/clui.h>
 #include <stdbool.h>
@@ -80,4 +80,4 @@ clui_shell_init(const char * restrict    name,
 extern void
 clui_shell_fini(void);
 
-#endif /* _CLUI_SHELL_H */
+#endif /* _LIBCLUI_SHELL_H */

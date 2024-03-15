@@ -4,6 +4,7 @@
 #include <clui/config.h>
 #include <utils/cdefs.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <getopt.h>
 #include <linux/taskstats.h>
 
@@ -227,8 +228,16 @@ clui_parse_cmd(const struct clui_cmd *cmd,
 }
 
 /******************************************************************************
- * Top-level parser handling
+ * Top-level handling
  ******************************************************************************/
+
+extern bool clui_color_on;
+
+static inline bool __clui_pure __nothrow
+clui_has_colors(void)
+{
+	return clui_color_on;
+}
 
 extern void
 clui_err(const struct clui_parser *restrict parser,

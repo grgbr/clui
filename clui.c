@@ -1,8 +1,8 @@
-#include <clui/clui.h>
-#include <stdbool.h>
+#include "clui/clui.h"
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 #include <errno.h>
 
 /******************************************************************************
@@ -356,6 +356,8 @@ clui_parse(struct clui_parser        *parser,
 	return clui_parse_cmd(cmd, parser, argc - cnt, &argv[cnt], ctx);
 }
 
+bool clui_color_on;
+
 int __clui_nonull(1, 3) __nothrow __leaf
 clui_init(struct clui_parser *restrict parser,
           int                 argc,
@@ -369,6 +371,13 @@ clui_init(struct clui_parser *restrict parser,
 
 	strncpy(parser->argv0, basename(argv[0]), sizeof(parser->argv0) - 1);
 	parser->argv0[sizeof(parser->argv0) - 1] = '\0';
+
+	if (isatty(STDOUT_FILENO))
+		/*
+		 * FIXME: in addition probe terminal color support using
+		 * tigetnum("colors") from ncurses / termcap / terminfo ?
+		 */
+		clui_color_on = true;
 
 	return 0;
 }
