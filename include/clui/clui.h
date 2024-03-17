@@ -36,13 +36,14 @@
 struct clui_cmd;
 
 struct clui_parser {
-	char argv0[TS_COMM_LEN];
+	bool         prefix;
+	const char * argv0;
 };
 
 #define clui_assert_parser(_parser) \
 	clui_assert(_parser); \
-	clui_assert(*(_parser)->argv0); \
-	clui_assert(!(_parser)->argv0[sizeof(parser->argv0) - 1])
+	clui_assert((_parser)->argv0); \
+	clui_assert(*(_parser)->argv0)
 
 /******************************************************************************
  * Keyword parameter handling
@@ -245,6 +246,17 @@ static inline bool __clui_pure __nothrow
 clui_has_colors(void)
 {
 	return clui_color_on;
+}
+
+static inline const char *
+clui_prefix(const struct clui_parser * restrict parser)
+{
+	clui_assert_parser(parser);
+
+	if (parser->prefix)
+		return parser->argv0;
+	else
+		return NULL;
 }
 
 extern void

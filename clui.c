@@ -18,7 +18,8 @@ clui_err(const struct clui_parser *restrict parser,
 
 	va_list args;
 
-	fprintf(stderr, "%s: ", parser->argv0);
+	if (parser->prefix)
+		fprintf(stderr, "%s: ", parser->argv0);
 
 	va_start(args, format);
 	vfprintf(stderr, format, args);
@@ -370,8 +371,8 @@ clui_init(struct clui_parser *restrict parser,
 	if (!argc || !argv[0] || !*argv[0])
 		return -EINVAL;
 
-	strncpy(parser->argv0, basename(argv[0]), sizeof(parser->argv0) - 1);
-	parser->argv0[sizeof(parser->argv0) - 1] = '\0';
+	parser->prefix = true;
+	parser->argv0 = program_invocation_short_name;
 
 	clui_isatty = !!isatty(STDOUT_FILENO);
 	if (clui_isatty)

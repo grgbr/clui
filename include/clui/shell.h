@@ -71,13 +71,14 @@ typedef char ** (clui_shell_complete_fn)(const char *       word,
                                          void *             data);
 
 extern void
-clui_shell_init(const char * restrict    name,
-                const char * restrict    prompt,
-                clui_shell_complete_fn * complete,
-                void * restrict          data,
-                bool                     enable_history);
+clui_shell_init(struct clui_parser * restrict parser,
+                const char * restrict         name,
+                const char * restrict         prompt,
+                clui_shell_complete_fn *      complete,
+                void * restrict               data,
+                bool                          enable_history);
 
 extern void
-clui_shell_fini(void);
+clui_shell_fini(struct clui_parser * restrict parser);
 
 #endif /* _LIBCLUI_SHELL_H */

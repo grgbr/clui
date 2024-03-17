@@ -644,14 +644,18 @@ clui_shell_complete(const char * word, int start, int end)
 }
 
 void
-clui_shell_init(const char * restrict    name,
-                const char * restrict    prompt,
-                clui_shell_complete_fn * complete,
-                void * restrict          data,
-                bool                     enable_history)
+clui_shell_init(struct clui_parser * restrict parser,
+                const char * restrict         name,
+                const char * restrict         prompt,
+                clui_shell_complete_fn *      complete,
+                void * restrict               data,
+                bool                          enable_history)
 {
+	clui_assert_parser(parser);
 	clui_assert(!name || *name);
 	clui_assert(!prompt || *prompt);
+
+	parser->prefix = false;
 
 	clui_the_shell.complete = complete;
 	clui_the_shell.data = data;
@@ -694,7 +698,10 @@ clui_shell_save_hist(void)
 }
 
 void
-clui_shell_fini(void)
+clui_shell_fini(struct clui_parser * restrict parser)
 {
+	clui_assert_parser(parser);
+
+	parser->prefix = true;
 	clui_shell_save_hist();
 }
