@@ -11,12 +11,14 @@
 #include <readline/history.h>
 
 struct clui_shell {
+	const char *             match_word;
 	size_t                   match_len;
 	unsigned int             match_indx;
 	unsigned int             match_nr;
 	const char * const *     matches;
-	clui_shell_complete_fn * complete;
-	void *                   data;
+	const struct clui_cmd *  cmd;
+	struct clui_parser *     parser;
+	void *                   ctx;
 	const char *             prompt;
 	bool                     hist;
 	char *                   hist_path;
@@ -50,15 +52,15 @@ clui_shell_generate_static_match(const char * restrict word, int state __unused)
 	return NULL;
 }
 
-char ** __clui_nonull(1, 3)
-clui_shell_build_static_matches(const char *       word,
-                                size_t             len,
-                                const char * const matches[],
-                                size_t             nr)
+char **
+clui_shell_build_static_matches(const char * const matches[], size_t nr)
 {
-	clui_assert(word);
 	clui_assert(matches);
 	clui_assert(nr);
+	clui_assert(clui_the_shell.match_word);
+
+	const char * word = clui_the_shell.match_word;
+	size_t       len = clui_the_shell.match_len;
 
 	if (len >= (LINE_MAX - 1))
 		return NULL;
@@ -105,20 +107,18 @@ clui_shell_find_kword_parm(
 	return -ENOENT;
 }
 
-char ** __clui_nonull(1, 3, 6)
+char **
 clui_shell_build_kword_matches(
-	const char *                               word,
-	size_t                                     len,
 	const struct clui_shell_kword_parm * const parms[],
 	unsigned int                               nr,
 	int                                        argc,
 	const char * const                         argv[],
-	void *                                     data)
+	void *                                     ctx)
 {
-	clui_assert(word);
 	clui_assert(parms);
 	clui_assert(nr);
 	clui_assert(argv);
+	clui_assert(clui_the_shell.match_word);
 
 	struct fbmp bmp;
 	int         p = -ENOENT;
@@ -162,10 +162,7 @@ clui_shell_build_kword_matches(
 		}
 
 		if (m)
-			matches = clui_shell_build_static_matches(word,
-			                                          len,
-			                                          samples,
-			                                          m);
+			matches = clui_shell_build_static_matches(samples, m);
 
 		free(samples);
 	}
@@ -175,7 +172,9 @@ clui_shell_build_kword_matches(
 		clui_assert(parms[p]->clui->label);
 
 		if (parms[p]->build)
-			matches = parms[p]->build(word, len, data);
+			matches = parms[p]->build(clui_the_shell.match_word,
+			                          clui_the_shell.match_len,
+			                          ctx);
 		else
 			matches = NULL;
 	}
@@ -217,18 +216,16 @@ clui_shell_find_switch_parm(
 	return -ENOENT;
 }
 
-char ** __clui_nonull(1, 3, 6)
-clui_shell_build_switch_matches(const char *                          word,
-                                size_t                                len,
-                                const struct clui_switch_parm * const parms[],
+char **
+clui_shell_build_switch_matches(const struct clui_switch_parm * const parms[],
                                 unsigned int                          nr,
                                 int                                   argc,
                                 const char * const                    argv[])
 {
-	clui_assert(word);
 	clui_assert(parms);
 	clui_assert(nr);
 	clui_assert(argv);
+	clui_assert(clui_the_shell.match_word);
 
 	struct fbmp      bmp;
 	const char **    samples;
@@ -258,10 +255,7 @@ clui_shell_build_switch_matches(const char *                          word,
 		samples[m++] = parms[p]->label;
 
 	if (m)
-		matches = clui_shell_build_static_matches(word,
-		                                          len,
-		                                          samples,
-		                                          m);
+		matches = clui_shell_build_static_matches(samples, m);
 
 	free(samples);
 
@@ -589,12 +583,30 @@ free:
 static char ** __clui_nonull(1)
 clui_shell_complete(const char * word, int start, int end)
 {
+	clui_assert_cmd(clui_the_shell.cmd);
+	clui_assert(clui_the_shell.cmd->complete);
+	clui_assert_parser(clui_the_shell.parser);
+
 	clui_assert(word);
 	clui_assert(start >= 0);
 	clui_assert(end >= 0);
 	clui_assert(start <= end);
 	clui_assert(end <= rl_end);
 	clui_assert(strlen(word) == (size_t)(end - start));
+
+	const struct clui_cmd * cmd = clui_the_shell.cmd;
+	struct clui_parser *    parser = clui_the_shell.parser;
+	clui_complete_fn *      complete = cmd->complete;
+	void *                  ctx = clui_the_shell.ctx;
+
+	clui_the_shell.match_word = word;
+	clui_the_shell.match_len = end - start;
+
+	/*
+	 * Disable default readline's filename completion handler...
+	 * User may still call filename_completion_function() if required.
+	 */
+	rl_attempted_completion_over = 1;
 
 	if (start) {
 		char ** words;
@@ -614,20 +626,15 @@ clui_shell_complete(const char * word, int start, int end)
 
 		ret = clui_shell_break_expr(&words, ln, start);
 		if (ret > 0) {
-			matches = clui_the_shell.complete(word,
-			                                  end - start,
-			                                  ret,
-			                                  (const char * const *)
-			                                  words,
-			                                  clui_the_shell.data);
+			matches = complete(cmd,
+			                   parser,
+			                   ret,
+			                   (const char * const *)words,
+			                   ctx);
 			free(words);
 		}
 		else if (!ret)
-			matches = clui_the_shell.complete(word,
-			                                  end - start,
-			                                  0,
-			                                  NULL,
-			                                  clui_the_shell.data);
+			matches = complete(cmd, parser, 0, NULL, ctx);
 		else
 			matches = NULL;
 
@@ -636,35 +643,34 @@ clui_shell_complete(const char * word, int start, int end)
 		return matches;
 	}
 
-	return clui_the_shell.complete(word,
-	                               end - start,
-	                               0,
-	                               NULL,
-	                               clui_the_shell.data);
+	return complete(cmd, parser, 0, NULL, ctx);
 }
 
 void
-clui_shell_init(struct clui_parser * restrict parser,
-                const char * restrict         name,
-                const char * restrict         prompt,
-                clui_shell_complete_fn *      complete,
-                void * restrict               data,
-                bool                          enable_history)
+clui_shell_init(const struct clui_cmd * restrict cmd,
+                struct clui_parser * restrict    parser,
+                const char * restrict            name,
+                const char * restrict            prompt,
+                void * restrict                  ctx,
+                bool                             enable_history)
 {
-	clui_assert_parser(parser);
+	clui_assert_cmd(cmd);
 	clui_assert(!name || *name);
 	clui_assert(!prompt || *prompt);
 
 	parser->prefix = false;
 
-	clui_the_shell.complete = complete;
-	clui_the_shell.data = data;
+	clui_the_shell.cmd = cmd;
+	clui_the_shell.parser = parser;
+	clui_the_shell.ctx = ctx;
 	clui_the_shell.prompt = prompt;
 	clui_the_shell.hist = enable_history;
 	clui_the_shell.hist_path = NULL;
 	clui_the_shell.shutdown = 0;
 
-	if (complete) {
+	if (cmd->complete) {
+		clui_assert_parser(parser);
+
 		rl_attempted_completion_function = clui_shell_complete;
 		rl_inhibit_completion = 0;
 	}

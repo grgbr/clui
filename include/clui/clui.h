@@ -186,13 +186,21 @@ typedef int (clui_parse_fn)(const struct clui_cmd *cmd,
                             char * const          *argv,
                             void                  *ctx);
 
+typedef char ** (clui_complete_fn)(const struct clui_cmd * cmd,
+                                   struct clui_parser *    parser,
+                                   int                     argc,
+                                   const char * const      argv[],
+                                   void *                  ctx);
+
+
 typedef void (clui_help_fn)(const struct clui_cmd    *cmd,
                             const struct clui_parser *parser,
                             FILE                     *stdio);
 
 struct clui_cmd {
-	clui_parse_fn *parse;
-	clui_help_fn  *help;
+	clui_parse_fn *    parse;
+	clui_complete_fn * complete;
+	clui_help_fn  *    help;
 };
 
 #define clui_assert_cmd(_cmd) \
@@ -201,18 +209,6 @@ struct clui_cmd {
 		clui_assert((_cmd)->parse); \
 		clui_assert((_cmd)->help); \
 	 })
-
-static inline void __clui_nonull(1, 2, 3)
-clui_help_cmd(const struct clui_cmd    *cmd,
-              const struct clui_parser *parser,
-              FILE                     *stdio)
-{
-	clui_assert_cmd(cmd);
-	clui_assert_parser(parser);
-	clui_assert(stdio);
-
-	cmd->help(cmd, parser, stdio);
-}
 
 static inline int __clui_nonull(1, 2, 4)
 clui_parse_cmd(const struct clui_cmd *cmd,
@@ -226,6 +222,35 @@ clui_parse_cmd(const struct clui_cmd *cmd,
 	clui_assert(argv);
 
 	return cmd->parse(cmd, parser, argc, argv, ctx);
+}
+
+static inline char ** __clui_nonull(1, 2, 4)
+clui_complete_cmd(const struct clui_cmd * cmd,
+                  struct clui_parser    * parser,
+                  int                     argc,
+                  const char * const    * argv,
+                  void                  * ctx)
+{
+	clui_assert_cmd(cmd);
+	clui_assert_parser(parser);
+	clui_assert(argv);
+
+	if (cmd->complete)
+		return cmd->complete(cmd, parser, argc, argv, ctx);
+
+	return NULL;
+}
+
+static inline void __clui_nonull(1, 2, 3)
+clui_help_cmd(const struct clui_cmd    *cmd,
+              const struct clui_parser *parser,
+              FILE                     *stdio)
+{
+	clui_assert_cmd(cmd);
+	clui_assert_parser(parser);
+	clui_assert(stdio);
+
+	cmd->help(cmd, parser, stdio);
 }
 
 /******************************************************************************

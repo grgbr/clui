@@ -1,4 +1,5 @@
 #include "clui/clui.h"
+#include <readline/readline.h>
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
