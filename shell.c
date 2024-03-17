@@ -564,7 +564,7 @@ clui_shell_hist_path(const char * name)
 	if (err < 0)
 		return NULL;
 
-	if (mkdir(conf_dir, S_IRUSR | S_IWUSR)) {
+	if (mkdir(conf_dir, S_IRUSR | S_IWUSR | S_IXUSR)) {
 		clui_assert(errno != EFAULT);
 		if (errno != EEXIST)
 			goto free;
