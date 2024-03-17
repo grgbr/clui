@@ -50,6 +50,4 @@ libclui.pc-tmpl    := libclui_pkgconf_tmpl
 # Source code tags generation
 ################################################################################
 
-tagfiles := $(shell find $(addprefix $(CURDIR)/,$(subdirs) mpack) \
-                    $(HEADERDIR) \
-                    -type f)
+tagfiles := $(shell find $(CURDIR) -type f)
