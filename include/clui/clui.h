@@ -231,6 +231,14 @@ clui_parse_cmd(const struct clui_cmd *cmd,
  * Top-level handling
  ******************************************************************************/
 
+extern bool clui_isatty;
+
+static inline bool __clui_pure __nothrow
+clui_has_tty(void)
+{
+	return clui_isatty;
+}
+
 extern bool clui_color_on;
 
 static inline bool __clui_pure __nothrow

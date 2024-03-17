@@ -356,6 +356,7 @@ clui_parse(struct clui_parser        *parser,
 	return clui_parse_cmd(cmd, parser, argc - cnt, &argv[cnt], ctx);
 }
 
+bool clui_isatty;
 bool clui_color_on;
 
 int __clui_nonull(1, 3) __nothrow __leaf
@@ -372,7 +373,8 @@ clui_init(struct clui_parser *restrict parser,
 	strncpy(parser->argv0, basename(argv[0]), sizeof(parser->argv0) - 1);
 	parser->argv0[sizeof(parser->argv0) - 1] = '\0';
 
-	if (isatty(STDOUT_FILENO))
+	clui_isatty = !!isatty(STDOUT_FILENO);
+	if (clui_isatty)
 		/*
 		 * FIXME: in addition probe terminal color support using
 		 * tigetnum("colors") from ncurses / termcap / terminfo ?
