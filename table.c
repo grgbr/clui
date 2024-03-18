@@ -1,4 +1,6 @@
 #include "clui/table.h"
+#include <stroll/cdefs.h>
+#include <string.h>
 #include <errno.h>
 
 int
@@ -12,6 +14,31 @@ clui_table_line_set_uint(struct libscols_line * line,
 	int    err __unused;
 
 	if (asprintf(&str, "%u", data) < 0)
+		return -errno;
+
+	/*
+	 * Give ownership of str to libsmartcols so that it may free(3) it once
+	 * no more needed.
+	 * scols_line_refer_data() always returns 0 unless given line argument
+	 * is NULL.
+	 */
+	err = scols_line_refer_data(line, column, str);
+	clui_assert(!err);
+
+	return 0;
+}
+
+int
+clui_table_line_set_hex64(struct libscols_line * line,
+                          unsigned int           column,
+                          uint64_t               data)
+{
+	clui_assert(line);
+
+	char * str;
+	int    err __unused;
+
+	if (asprintf(&str, PRIx64, data) < 0)
 		return -errno;
 
 	/*
@@ -64,6 +91,7 @@ clui_table_init(struct clui_table * table, const struct clui_table_desc * desc)
 	for (c = 0; c < desc->col_cnt; c++) {
 		const struct clui_column_desc * cdesc = &desc->columns[c];
 		struct libscols_column *        col;
+		int                             err;
 
 		clui_assert(cdesc->label);
 		clui_assert(cdesc->label[0]);
@@ -76,7 +104,9 @@ clui_table_init(struct clui_table * table, const struct clui_table_desc * desc)
 			goto unref;
 
 		/* Highlight column header title. */
-		scols_cell_set_color(scols_column_get_header(col), "bold");
+		err = scols_cell_set_color(scols_column_get_header(col),
+		                           "bold");
+		clui_assert(!err);
 	}
 
 	table->scols = tbl;

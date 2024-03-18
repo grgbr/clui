@@ -42,6 +42,11 @@ clui_table_line_set_uint(struct libscols_line * line,
                          unsigned int           column,
                          unsigned int           data);
 
+extern int
+clui_table_line_set_hex64(struct libscols_line * line,
+                          unsigned int           column,
+                          uint64_t               data);
+
 static inline int
 clui_table_line_set_str(struct libscols_line * line,
                         unsigned int           column,
