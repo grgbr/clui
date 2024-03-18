@@ -12,10 +12,10 @@ struct clui_column_desc {
 	int          flags;
 };
 
-typedef int (clui_table_update_fn)(struct clui_table *, void *);
+typedef int (clui_table_load_fn)(struct clui_table *, void *);
 
 struct clui_table_desc {
-	clui_table_update_fn *          update;
+	clui_table_load_fn *            load;
 	unsigned int                    noheadings:1;
 	unsigned int                    col_cnt;
 	const struct clui_column_desc * columns;
@@ -23,7 +23,7 @@ struct clui_table_desc {
 
 #define clui_table_assert_desc(_desc) \
 	clui_assert(_desc); \
-	clui_assert((_desc)->update); \
+	clui_assert((_desc)->load); \
 	clui_assert((_desc)->col_cnt); \
 	clui_assert((_desc)->columns)
 
@@ -77,11 +77,11 @@ clui_table_clear(const struct clui_table * table)
 }
 
 static inline int
-clui_table_update(struct clui_table * table, void * data)
+clui_table_load(struct clui_table * table, void * data)
 {
 	clui_table_assert(table);
 
-	return table->desc->update(table, data);
+	return table->desc->load(table, data);
 }
 
 static inline int
