@@ -3,6 +3,7 @@
 
 #include <clui/clui.h>
 #include <libsmartcols/libsmartcols.h>
+#include <stdint.h>
 
 struct clui_table;
 

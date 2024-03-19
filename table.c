@@ -1,5 +1,6 @@
 #include "clui/table.h"
 #include <stroll/cdefs.h>
+#include <inttypes.h>
 #include <string.h>
 #include <errno.h>
 
