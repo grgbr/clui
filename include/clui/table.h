@@ -4,6 +4,7 @@
 #include <clui/clui.h>
 #include <libsmartcols/libsmartcols.h>
 #include <stdint.h>
+#include <errno.h>
 
 struct clui_table;
 
@@ -13,7 +14,9 @@ struct clui_column_desc {
 	int          flags;
 };
 
-typedef int (clui_table_load_fn)(struct clui_table *, void *);
+typedef int (clui_table_load_fn)(struct clui_table *,
+                                 const struct clui_parser *,
+                                 void *);
 
 struct clui_table_desc {
 	clui_table_load_fn *            load;
@@ -55,11 +58,19 @@ clui_table_line_set_str(struct libscols_line * line,
 {
 	clui_assert(line);
 
+	int err;
+
 	/*
 	 * Request libsmartcols to duplicate string given as argument so that
 	 * it may free(3) it once no more needed.
 	 */
-	return scols_line_set_data(line, column, data);
+	err = scols_line_set_data(line, column, data);
+	if (!err)
+		return 0;
+
+	clui_assert(err == -ENOMEM);
+
+	return err;
 }
 
 static inline struct libscols_line *
@@ -68,7 +79,15 @@ clui_table_new_line(const struct clui_table * table,
 {
 	clui_table_assert(table);
 
-	return scols_table_new_line(table->scols, parent);
+	struct libscols_line * line;
+
+	line = scols_table_new_line(table->scols, parent);
+	if (line)
+		return line;
+
+	clui_assert(errno == ENOMEM);
+
+	return NULL;
 }
 
 extern void
@@ -82,21 +101,14 @@ clui_table_clear(const struct clui_table * table)
 	scols_table_remove_lines(table->scols);
 }
 
-static inline int
-clui_table_load(struct clui_table * table, void * data)
-{
-	clui_table_assert(table);
+extern int
+clui_table_load(struct clui_table *        table,
+                const struct clui_parser * parser,
+                void *                     data);
 
-	return table->desc->load(table, data);
-}
-
-static inline int
-clui_table_display(const struct clui_table * table)
-{
-	clui_table_assert(table);
-
-	return scols_print_table(table->scols);
-}
+extern int
+clui_table_display(const struct clui_table *             table,
+                   const struct clui_parser * __restrict parser);
 
 extern int
 clui_table_init(struct clui_table * table, const struct clui_table_desc * desc);

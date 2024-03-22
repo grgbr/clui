@@ -2,7 +2,6 @@
 #include <stroll/cdefs.h>
 #include <inttypes.h>
 #include <string.h>
-#include <errno.h>
 
 int
 clui_table_line_set_uint(struct libscols_line * line,
@@ -14,8 +13,10 @@ clui_table_line_set_uint(struct libscols_line * line,
 	char * str;
 	int    err __unused;
 
-	if (asprintf(&str, "%u", data) < 0)
+	if (asprintf(&str, "%u", data) < 0) {
+		clui_assert(errno == ENOMEM);
 		return -errno;
+	}
 
 	/*
 	 * Give ownership of str to libsmartcols so that it may free(3) it once
@@ -39,8 +40,10 @@ clui_table_line_set_hex64(struct libscols_line * line,
 	char * str;
 	int    err __unused;
 
-	if (asprintf(&str, PRIx64, data) < 0)
+	if (asprintf(&str, PRIx64, data) < 0) {
+		clui_assert(errno == ENOMEM);
 		return -errno;
+	}
 
 	/*
 	 * Give ownership of str to libsmartcols so that it may free(3) it once
@@ -74,6 +77,46 @@ clui_table_sort(const struct clui_table * table, unsigned int column)
 }
 
 int
+clui_table_load(struct clui_table *        table,
+                const struct clui_parser * parser,
+                void *                     data)
+{
+	clui_table_assert(table);
+	clui_assert(parser);
+
+	int err;
+
+	err = table->desc->load(table, parser, data);
+	if (!err)
+		return 0;
+
+	clui_err(parser, "failed to load table (%d).\n", err);
+
+	return err;
+}
+
+int
+clui_table_display(const struct clui_table *             table,
+                   const struct clui_parser * __restrict parser)
+{
+	clui_table_assert(table);
+	clui_assert(parser);
+
+	int err;
+
+	err = scols_print_table(table->scols);
+	if (!err)
+		return 0;
+
+	clui_err(parser,
+	         "failed to display table: %s (%d).\n",
+	         strerror(-err),
+	         err);
+
+	return err;
+}
+
+int
 clui_table_init(struct clui_table * table, const struct clui_table_desc * desc)
 {
 	clui_assert(table);
@@ -83,8 +126,10 @@ clui_table_init(struct clui_table * table, const struct clui_table_desc * desc)
 	unsigned int            c;
 
 	tbl = scols_new_table();
-	if (!tbl)
+	if (!tbl) {
+		clui_assert(errno == ENOMEM);
 		return -errno;
+	}
 
 	scols_table_enable_colors(tbl, (int)clui_has_colors());
 	scols_table_enable_noheadings(tbl, (int)desc->noheadings);
@@ -101,8 +146,14 @@ clui_table_init(struct clui_table * table, const struct clui_table_desc * desc)
 		                             cdesc->label,
 		                             cdesc->whint,
 		                             cdesc->flags);
-		if (!col)
-			goto unref;
+		if (!col) {
+			err = -errno;
+			clui_assert(err == -ENOMEM);
+
+			scols_unref_table(tbl);
+
+			return err;
+		}
 
 		/* Highlight column header title. */
 		err = scols_cell_set_color(scols_column_get_header(col),
@@ -114,9 +165,4 @@ clui_table_init(struct clui_table * table, const struct clui_table_desc * desc)
 	table->desc = desc;
 
 	return 0;
-
-unref:
-	scols_unref_table(tbl);
-
-	return -errno;
 }
