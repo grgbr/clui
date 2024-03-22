@@ -1,7 +1,7 @@
 #include "clui/shell.h"
+#include <stroll/fbmap.h>
 #include <utils/string.h>
 #include <utils/path.h>
-#include <utils/bitmap.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -120,11 +120,11 @@ clui_shell_build_kword_matches(
 	clui_assert(argv);
 	clui_assert(clui_the_shell.match_word);
 
-	struct fbmp bmp;
-	int         p = -ENOENT;
-	char **     matches = NULL;
+	struct stroll_fbmap bmp;
+	int                 p = -ENOENT;
+	char **             matches = NULL;
 
-	if (fbmp_init_set(&bmp, nr))
+	if (stroll_fbmap_init_set(&bmp, nr))
 		return NULL;
 
 	if (argc > 0) {
@@ -133,7 +133,7 @@ clui_shell_build_kword_matches(
 		for (a = 0; a < (argc - 1); a += 2) {
 			p = clui_shell_find_kword_parm(parms, nr, argv[a]);
 			if (p >= 0)
-				fbmp_clear(&bmp, p);
+				stroll_fbmap_clear(&bmp, p);
 		}
 
 		p = clui_shell_find_kword_parm(parms, nr, argv[argc - 1]);
@@ -142,18 +142,18 @@ clui_shell_build_kword_matches(
 	clui_assert(p < (int)nr);
 
 	if (!(argc % 2)) {
-		const char **    samples;
-		struct fbmp_iter iter;
-		unsigned int     m = 0;
+		const char **            samples;
+		struct stroll_fbmap_iter iter;
+		unsigned int             m = 0;
 
 		samples = malloc(nr * sizeof(samples[0]));
 		if (!samples)
 			goto fini;
 
 		if (p >= 0)
-			fbmp_clear(&bmp, p);
+			stroll_fbmap_clear(&bmp, p);
 
-		fbmp_foreach_bit(&iter, &bmp, p) {
+		stroll_fbmap_foreach_bit(&iter, &bmp, p) {
 			clui_assert(parms[p]);
 			clui_assert(parms[p]->clui);
 			clui_assert(parms[p]->clui->label);
@@ -166,7 +166,7 @@ clui_shell_build_kword_matches(
 
 		free(samples);
 	}
-	else if ((p >= 0) && fbmp_test(&bmp, p)) {
+	else if ((p >= 0) && stroll_fbmap_test(&bmp, p)) {
 		clui_assert(parms[p]);
 		clui_assert(parms[p]->clui);
 		clui_assert(parms[p]->clui->label);
@@ -180,7 +180,7 @@ clui_shell_build_kword_matches(
 	}
 
 fini:
-	fbmp_fini(&bmp);
+	stroll_fbmap_fini(&bmp);
 
 	return matches;
 }
@@ -227,14 +227,14 @@ clui_shell_build_switch_matches(const struct clui_switch_parm * const parms[],
 	clui_assert(argv);
 	clui_assert(clui_the_shell.match_word);
 
-	struct fbmp      bmp;
-	const char **    samples;
-	int              p = -ENOENT;
-	struct fbmp_iter iter;
-	unsigned int     m = 0;
-	char **          matches = NULL;
+	struct stroll_fbmap      bmp;
+	const char **            samples;
+	int                      p = -ENOENT;
+	struct stroll_fbmap_iter iter;
+	unsigned int             m = 0;
+	char **                  matches = NULL;
 
-	if (fbmp_init_set(&bmp, nr))
+	if (stroll_fbmap_init_set(&bmp, nr))
 		return NULL;
 
 	samples = malloc(nr * sizeof(samples[0]));
@@ -247,11 +247,11 @@ clui_shell_build_switch_matches(const struct clui_switch_parm * const parms[],
 		for (a = 0; a < argc; a ++) {
 			p = clui_shell_find_switch_parm(parms, nr, argv[a]);
 			if (p >= 0)
-				fbmp_clear(&bmp, p);
+				stroll_fbmap_clear(&bmp, p);
 		}
 	}
 
-	fbmp_foreach_bit(&iter, &bmp, p)
+	stroll_fbmap_foreach_bit(&iter, &bmp, p)
 		samples[m++] = parms[p]->label;
 
 	if (m)
@@ -260,7 +260,7 @@ clui_shell_build_switch_matches(const struct clui_switch_parm * const parms[],
 	free(samples);
 
 fini:
-	fbmp_fini(&bmp);
+	stroll_fbmap_fini(&bmp);
 
 	return matches;
 }

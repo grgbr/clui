@@ -2,7 +2,7 @@
 #define _LIBCLUI_H
 
 #include <clui/config.h>
-#include <utils/cdefs.h>
+#include <stroll/cdefs.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <getopt.h>

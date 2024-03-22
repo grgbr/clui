@@ -14,8 +14,9 @@ headers            += $(call kconf_enabled,CLUI_SHELL,clui/shell.h)
 headers            += $(call kconf_enabled,CLUI_TABLE,clui/table.h)
 
 ifneq ($(filter y,$(CONFIG_CLUI_ASSERT) $(CONFIG_CLUI_SHELL)),)
+pkgconf-libstroll  := libstroll
 pkgconf-libutils   := libutils
-endif # !($(filter y,$(CONFIG_CLUI_ASSERT)$(CONFIG_CLUI_SHELL)),)
+endif # !($(filter y,$(CONFIG_CLUI_ASSERT) $(CONFIG_CLUI_SHELL)),)
 
 solibs             := libclui.so
 libclui.so-objs     = clui.o
@@ -24,6 +25,7 @@ libclui.so-objs    += $(call kconf_enabled,CLUI_TABLE,table.o)
 libclui.so-cflags  := $(EXTRA_CFLAGS) -Wall -Wextra -D_GNU_SOURCE -DPIC -fpic
 libclui.so-ldflags := $(EXTRA_LDFLAGS) -shared -fpic -Wl,-soname,libclui.so
 libclui.so-pkgconf  = $(pkgconf-libutils) \
+                      $(pkgconf-libstroll) \
                       $(call kconf_enabled,CLUI_SHELL,readline) \
                       $(call kconf_enabled,CLUI_TABLE,smartcols)
 
