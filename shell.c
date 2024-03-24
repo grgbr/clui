@@ -153,7 +153,7 @@ clui_shell_build_kword_matches(
 		if (p >= 0)
 			stroll_fbmap_clear(&bmp, p);
 
-		stroll_fbmap_foreach_bit(&iter, &bmp, p) {
+		stroll_fbmap_foreach_set(&iter, &bmp, p) {
 			clui_assert(parms[p]);
 			clui_assert(parms[p]->clui);
 			clui_assert(parms[p]->clui->label);
@@ -251,7 +251,7 @@ clui_shell_build_switch_matches(const struct clui_switch_parm * const parms[],
 		}
 	}
 
-	stroll_fbmap_foreach_bit(&iter, &bmp, p)
+	stroll_fbmap_foreach_set(&iter, &bmp, p)
 		samples[m++] = parms[p]->label;
 
 	if (m)
